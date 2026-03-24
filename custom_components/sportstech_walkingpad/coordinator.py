@@ -287,6 +287,11 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
                 self.data.steps    = (data[11] & 0xFF) | ((data[12] & 0xFF) << 8)
         elif ha_state == STATE_IDLE:
             self.data.speed = 0.0
+            self.data.time = 0
+            self.data.distance = 0
+            self.data.calories = 0.0
+            self.data.steps = 0
+            self.data.heart = 0
 
     def _parse_param_response(self, data: bytes) -> None:
         """Parse a protocol-1 PARAM response frame.

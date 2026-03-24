@@ -135,13 +135,26 @@ class TestParseStateResponse:
         assert c.data.steps == 600
         assert c.data.heart == 75
 
-    def test_idle_resets_speed(self, make_coordinator: object) -> None:
-        """After RUNNING → IDLE, speed should be cleared to 0."""
+    def test_idle_resets_session_metrics(self, make_coordinator: object) -> None:
+        """After RUNNING → IDLE, all session metrics should be cleared to 0."""
         c: WalkingPadCoordinator = make_coordinator()
-        c._on_notification(0, _state_frame(3, speed_x10=30))
+        c._on_notification(0, _state_frame(
+            3, speed_x10=30, incline=2,
+            time_lo=0x2C, time_hi=0x01,
+            dist_lo=4, dist_hi=0,
+            cal_lo=10, cal_hi=0,
+            steps_lo=50, steps_hi=0,
+            heart=72,
+        ))
         assert c.data.speed == pytest.approx(3.0)
+        assert c.data.distance == 4
         c._on_notification(0, _state_frame(0))
         assert c.data.speed == pytest.approx(0.0)
+        assert c.data.time == 0
+        assert c.data.distance == 0
+        assert c.data.calories == pytest.approx(0.0)
+        assert c.data.steps == 0
+        assert c.data.heart == 0
 
     def test_two_byte_little_endian_max(self, make_coordinator: object) -> None:
         """16-bit LE values max out at 65535."""
