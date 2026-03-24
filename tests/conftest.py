@@ -68,7 +68,12 @@ def _callback(func: object) -> object:
     return func
 
 
-_mod("homeassistant.core", HomeAssistant=_HomeAssistant, callback=_callback)
+class _ServiceCall:
+    def __init__(self, data: dict | None = None) -> None:
+        self.data = data or {}
+
+
+_mod("homeassistant.core", HomeAssistant=_HomeAssistant, callback=_callback, ServiceCall=_ServiceCall)
 
 _bluetooth_mod = _mod(
     "homeassistant.components.bluetooth",
@@ -121,7 +126,8 @@ _mod(
 )
 _mod("homeassistant.helpers.entity", DeviceInfo=dict)
 _mod("homeassistant.helpers.entity_platform", AddEntitiesCallback=MagicMock)
-_mod("homeassistant.helpers", update_coordinator=MagicMock(), entity=MagicMock())
+_mod("homeassistant.helpers.config_validation", Schema=MagicMock)
+_mod("homeassistant.helpers", update_coordinator=MagicMock(), entity=MagicMock(), config_validation=MagicMock())
 
 
 class _SensorDeviceClass:
@@ -149,6 +155,7 @@ class _SensorEntityDescription:
     native_unit_of_measurement: str | None = None
     suggested_display_precision: int | None = None
     entity_registry_enabled_default: bool = True
+    entity_category: str | None = None
 
 
 class _SensorEntity:
@@ -202,12 +209,18 @@ class _UnitOfTime:
     SECONDS = "s"
 
 
+class _EntityCategory:
+    CONFIG = "config"
+    DIAGNOSTIC = "diagnostic"
+
+
 _mod(
     "homeassistant.const",
     Platform=_Platform,
     UnitOfSpeed=_UnitOfSpeed,
     UnitOfLength=_UnitOfLength,
     UnitOfTime=_UnitOfTime,
+    EntityCategory=_EntityCategory,
 )
 
 

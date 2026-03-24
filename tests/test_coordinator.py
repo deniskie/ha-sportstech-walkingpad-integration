@@ -250,3 +250,90 @@ class TestSpeedEncoding:
         await c.async_set_speed(3.5)
         frame: bytes = mock_client.write_gatt_char.call_args[0][1]
         assert frame[3] == 35  # 3.5 * 10
+
+
+# ---------------------------------------------------------------------------
+# async_set_incline encoding
+# ---------------------------------------------------------------------------
+
+class TestInclineEncoding:
+    async def test_incline_encoding(self, make_coordinator: object) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        c: WalkingPadCoordinator = make_coordinator()
+        mock_client = MagicMock()
+        mock_client.is_connected = True
+        mock_client.write_gatt_char = AsyncMock()
+        c._client = mock_client
+        c.data.speed = 3.0
+
+        async def _noop() -> None: ...
+        c._ensure_connected = _noop  # type: ignore[method-assign]
+
+        await c.async_set_incline(5)
+        frame: bytes = mock_client.write_gatt_char.call_args[0][1]
+        assert frame[3] == 30  # current speed 3.0 * 10
+        assert frame[4] == 5   # incline
+
+    async def test_incline_clamped_to_max(self, make_coordinator: object) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        c: WalkingPadCoordinator = make_coordinator()
+        mock_client = MagicMock()
+        mock_client.is_connected = True
+        mock_client.write_gatt_char = AsyncMock()
+        c._client = mock_client
+        c.data.max_incline = 10
+
+        async def _noop() -> None: ...
+        c._ensure_connected = _noop  # type: ignore[method-assign]
+
+        await c.async_set_incline(99)
+        frame: bytes = mock_client.write_gatt_char.call_args[0][1]
+        assert frame[4] == 10  # clamped to max_incline
+
+
+# ---------------------------------------------------------------------------
+# _parse_param_response
+# ---------------------------------------------------------------------------
+
+class TestParamResponse:
+    def test_speed_limits_parsed(self, make_coordinator: object) -> None:
+        c: WalkingPadCoordinator = make_coordinator()
+        # sub_cmd=0x02, maxSpeed=60 (6.0 km/h), minSpeed=5 (0.5 km/h)
+        frame = _build_frame(bytes([0x50, 0x02, 60, 5, 0x00, 0x00]))
+        c._on_notification(0, frame)
+        assert c.data.max_speed == pytest.approx(6.0)
+        assert c.data.min_speed == pytest.approx(0.5)
+        assert c.data.params_received is True
+
+    def test_incline_limits_parsed(self, make_coordinator: object) -> None:
+        c: WalkingPadCoordinator = make_coordinator()
+        # sub_cmd=0x03, maxIncline=12, minIncline=0
+        frame = _build_frame(bytes([0x50, 0x03, 12, 0, 0x00, 0x00]))
+        c._on_notification(0, frame)
+        assert c.data.max_incline == 12
+        assert c.data.min_incline == 0
+        assert c.data.params_received is True
+
+    def test_param_event_set(self, make_coordinator: object) -> None:
+        c: WalkingPadCoordinator = make_coordinator()
+        c._param_ready.clear()
+        frame = _build_frame(bytes([0x50, 0x02, 60, 5, 0x00, 0x00]))
+        c._on_notification(0, frame)
+        assert c._param_ready.is_set()
+
+    def test_too_short_ignored(self, make_coordinator: object) -> None:
+        c: WalkingPadCoordinator = make_coordinator()
+        # Frame too short — params_received must stay False
+        frame = _build_frame(bytes([0x50, 0x02]))
+        c._on_notification(0, frame)
+        assert c.data.params_received is False
+
+    def test_disconnect_wakes_param_event(self, make_coordinator: object) -> None:
+        from unittest.mock import MagicMock
+
+        c: WalkingPadCoordinator = make_coordinator()
+        c._param_ready.clear()
+        c._on_disconnected(MagicMock())
+        assert c._param_ready.is_set()

@@ -11,6 +11,12 @@ Periodic poll (protocol 1 – treadmill):
              dist_lo, dist_hi, cal_lo, cal_hi, steps_lo, steps_hi,
              heart, …, checksum, 0x03]
 
+Param query (protocol 1):
+    Speed limits TX:   [0x02, 0x50, 0x02, 0x52, 0x03]
+    Speed limits RX:   [0x02, 0x50, 0x02, maxSpeed*10, minSpeed*10, …]
+    Incline limits TX: [0x02, 0x50, 0x03, 0x53, 0x03]
+    Incline limits RX: [0x02, 0x50, 0x03, maxIncline, minIncline, …]
+
 Source: reverse-engineered from com.fithome.bluetooth.BLEDevice
         in Sportstech Live 5.1.9 APK.
 """
@@ -31,6 +37,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CHAR_RECV_UUID,
     CHAR_SEND_UUID,
+    CMD_PARAM_INCLINE,
+    CMD_PARAM_SPEED,
     CMD_PAUSE,
     CMD_START,
     CMD_STOP,
@@ -46,7 +54,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_POLL_TIMEOUT = 10.0  # seconds to wait for a STATE notification
+_POLL_TIMEOUT = 10.0   # seconds to wait for a STATE notification
+_PARAM_TIMEOUT = 5.0   # seconds to wait for a PARAM notification
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +80,13 @@ class WalkingPadData:
     distance: int = 0       # m
     calories: float = 0.0   # kcal
     steps: int = 0          # step count
+
+    # Device limits (populated from PARAM query on connect)
+    max_speed: float = 6.0   # km/h
+    min_speed: float = 0.5   # km/h
+    max_incline: int = 15    # %
+    min_incline: int = 0     # %
+    params_received: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -110,6 +126,7 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
 
     A persistent connection is held; the update loop sends a STATE query
     every *poll_interval* seconds and parses the FFF1 notification reply.
+    On first connect, speed and incline limits are queried via CMD_PARAM.
     """
 
     def __init__(
@@ -130,6 +147,7 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
 
         self._client: BleakClient | None = None
         self._notification_ready = asyncio.Event()
+        self._param_ready = asyncio.Event()
         self.data: WalkingPadData = WalkingPadData()
 
     # ------------------------------------------------------------------
@@ -170,6 +188,7 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         )
         await self._client.start_notify(CHAR_RECV_UUID, self._on_notification)
         _LOGGER.debug("Connected to %s", self.device_name)
+        await self._query_params()
 
     def _on_disconnected(self, _client: BleakClient) -> None:
         _LOGGER.debug("WalkingPad %s disconnected", self.mac)
@@ -177,6 +196,29 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         self._client = None
         # Wake up any waiting poll so it doesn't hang
         self._notification_ready.set()
+        self._param_ready.set()
+
+    # ------------------------------------------------------------------
+    # Param query (device limits)
+    # ------------------------------------------------------------------
+
+    async def _query_params(self) -> None:
+        """Query speed and incline limits from the device."""
+        if not self._client or not self._client.is_connected:
+            return
+        try:
+            self._param_ready.clear()
+            await self._client.write_gatt_char(
+                CHAR_SEND_UUID, _build_frame(CMD_PARAM_SPEED), response=False
+            )
+            await asyncio.wait_for(self._param_ready.wait(), timeout=_PARAM_TIMEOUT)
+            self._param_ready.clear()
+            await self._client.write_gatt_char(
+                CHAR_SEND_UUID, _build_frame(CMD_PARAM_INCLINE), response=False
+            )
+            await asyncio.wait_for(self._param_ready.wait(), timeout=_PARAM_TIMEOUT)
+        except asyncio.TimeoutError:
+            _LOGGER.debug("No PARAM reply from %s – using defaults", self.mac)
 
     # ------------------------------------------------------------------
     # Polling
@@ -209,6 +251,9 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         if msg_type == 0x51:
             self._parse_state_response(data)
             self._notification_ready.set()
+        elif msg_type == 0x50:
+            self._parse_param_response(data)
+            self._param_ready.set()
 
     def _parse_state_response(self, data: bytes) -> None:
         """Parse a protocol-1 STATE response frame.
@@ -243,6 +288,36 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         elif ha_state == STATE_IDLE:
             self.data.speed = 0.0
 
+    def _parse_param_response(self, data: bytes) -> None:
+        """Parse a protocol-1 PARAM response frame.
+
+        Sub-command 0x02 (speed limits):
+          [0x50, 0x02, maxSpeed*10, minSpeed*10, flags, light]
+        Sub-command 0x03 (incline limits):
+          [0x50, 0x03, maxIncline, minIncline, flags, light]
+        """
+        if len(data) < 6:
+            return
+
+        sub_cmd = data[2] & 0xFF
+
+        if sub_cmd == 0x02 and len(data) >= 7:
+            self.data.max_speed = round((data[3] & 0xFF) / 10.0, 1)
+            self.data.min_speed = round((data[4] & 0xFF) / 10.0, 1)
+            self.data.params_received = True
+            _LOGGER.debug(
+                "Params from %s: max_speed=%.1f min_speed=%.1f",
+                self.mac, self.data.max_speed, self.data.min_speed,
+            )
+        elif sub_cmd == 0x03 and len(data) >= 7:
+            self.data.max_incline = data[3] & 0xFF
+            self.data.min_incline = data[4] & 0xFF
+            self.data.params_received = True
+            _LOGGER.debug(
+                "Params from %s: max_incline=%d min_incline=%d",
+                self.mac, self.data.max_incline, self.data.min_incline,
+            )
+
     # ------------------------------------------------------------------
     # Control commands
     # ------------------------------------------------------------------
@@ -267,6 +342,13 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         await self._ensure_connected()
         speed_byte = max(0, min(255, round(speed_kmh * 10)))
         incline_byte = self.data.incline & 0xFF
+        await self._send(bytes([0x53, 0x02, speed_byte, incline_byte]))
+
+    async def async_set_incline(self, incline: int) -> None:
+        """Set belt incline level (0–max_incline), keeping current speed."""
+        await self._ensure_connected()
+        speed_byte = max(0, min(255, round(self.data.speed * 10)))
+        incline_byte = max(0, min(self.data.max_incline, incline)) & 0xFF
         await self._send(bytes([0x53, 0x02, speed_byte, incline_byte]))
 
     async def _send(self, payload: bytes) -> None:

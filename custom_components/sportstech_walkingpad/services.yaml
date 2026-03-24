@@ -1,0 +1,41 @@
+start:
+  name: Start Belt
+  description: Start the WalkingPad belt.
+
+stop:
+  name: Stop Belt
+  description: Stop the WalkingPad belt.
+
+pause:
+  name: Pause Belt
+  description: Pause the WalkingPad belt (only supported on compatible devices).
+
+set_speed:
+  name: Set Speed
+  description: Set the belt speed.
+  fields:
+    speed:
+      name: Speed
+      description: Target speed in km/h (e.g. 3.5). Clamped to device limits.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 25
+          step: 0.1
+          unit_of_measurement: "km/h"
+
+set_incline:
+  name: Set Incline
+  description: Set the belt incline level, keeping the current speed.
+  fields:
+    incline:
+      name: Incline
+      description: Target incline level (0–15). Clamped to device max.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 15
+          step: 1
+          unit_of_measurement: "%"

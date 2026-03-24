@@ -39,8 +39,9 @@ FRAME_ETX = 0x03
 # Command bytes sent to CHAR_SEND_UUID
 # ---------------------------------------------------------------------------
 
-CMD_STATE = bytes([0x51])        # Request current state + metrics
-CMD_PARAM = bytes([0x50, 0x02])  # Request speed/incline limits
+CMD_STATE         = bytes([0x51])        # Request current state + metrics
+CMD_PARAM_SPEED   = bytes([0x50, 0x02])  # Request speed limits (max/min speed)
+CMD_PARAM_INCLINE = bytes([0x50, 0x03])  # Request incline limits (max/min incline)
 
 CMD_START = bytes([0x53, 0x01])  # Start belt
 CMD_STOP  = bytes([0x53, 0x03])  # Stop belt

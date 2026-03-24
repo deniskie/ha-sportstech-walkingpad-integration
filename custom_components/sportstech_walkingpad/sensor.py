@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    EntityCategory,
     UnitOfLength,
     UnitOfSpeed,
     UnitOfTime,
@@ -113,6 +114,32 @@ SENSOR_DESCRIPTIONS: tuple[WalkingPadSensorDescription, ...] = (
 )
 
 # ---------------------------------------------------------------------------
+# Diagnostic sensors — device limits, populated after PARAM query on connect
+# ---------------------------------------------------------------------------
+
+DIAGNOSTIC_SENSOR_DESCRIPTIONS: tuple[WalkingPadSensorDescription, ...] = (
+    WalkingPadSensorDescription(
+        key="max_speed",
+        translation_key="max_speed",
+        name="Max Speed",
+        native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
+        device_class=SensorDeviceClass.SPEED,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+        value_fn=lambda d: d.max_speed if d.params_received else None,
+    ),
+    WalkingPadSensorDescription(
+        key="max_incline",
+        translation_key="max_incline",
+        name="Max Incline",
+        native_unit_of_measurement="%",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:slope-uphill",
+        value_fn=lambda d: d.max_incline if d.params_received else None,
+    ),
+)
+
+# ---------------------------------------------------------------------------
 # Total (lifetime) sensors — accumulate across sessions, persist across reboots
 # ---------------------------------------------------------------------------
 
@@ -165,6 +192,7 @@ async def async_setup_entry(
     coordinator: WalkingPadCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([
         *(WalkingPadSensor(coordinator, desc) for desc in SENSOR_DESCRIPTIONS),
+        *(WalkingPadSensor(coordinator, desc) for desc in DIAGNOSTIC_SENSOR_DESCRIPTIONS),
         *(WalkingPadTotalSensor(coordinator, desc) for desc in TOTAL_SENSOR_DESCRIPTIONS),
     ])
 

@@ -33,7 +33,9 @@
       "total_workout_time": {"name": "Total Workout Time"},
       "total_distance": {"name": "Total Distance"},
       "total_calories": {"name": "Total Calories"},
-      "total_steps": {"name": "Total Steps"}
+      "total_steps": {"name": "Total Steps"},
+      "max_speed": {"name": "Max Speed"},
+      "max_incline": {"name": "Max Incline"}
     }
   }
 }
