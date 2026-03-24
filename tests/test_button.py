@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 from custom_components.sportstech_walkingpad.button import (
     BUTTON_DESCRIPTIONS,
