@@ -19,5 +19,17 @@
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert"
     }
+  },
+  "entity": {
+    "sensor": {
+      "state": {"name": "Zustand"},
+      "speed": {"name": "Geschwindigkeit"},
+      "incline": {"name": "Neigung"},
+      "heart_rate": {"name": "Herzfrequenz"},
+      "workout_time": {"name": "Trainingszeit"},
+      "distance": {"name": "Distanz"},
+      "calories": {"name": "Kalorien"},
+      "steps": {"name": "Schritte"}
+    }
   }
 }
