@@ -1,7 +1,9 @@
 {
   "domain": "sportstech_walkingpad",
   "name": "Sportstech WalkingPad (unofficial)",
-  "bluetooth": [],
+  "bluetooth": [
+    {"service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb"}
+  ],
   "codeowners": ["@dkiesel"],
   "config_flow": true,
   "dependencies": ["bluetooth"],

@@ -65,11 +65,10 @@ class WalkingPadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step."""
-        if WALKINGPAD_SERVICE_UUID:
-            discovered = bluetooth.async_discovered_service_info(self.hass)
-            for info in discovered:
-                if WALKINGPAD_SERVICE_UUID.lower() in [s.lower() for s in info.service_uuids]:
-                    self._discovered_devices[info.address] = info.name or info.address
+        discovered = bluetooth.async_discovered_service_info(self.hass)
+        for info in discovered:
+            if WALKINGPAD_SERVICE_UUID.lower() in [s.lower() for s in info.service_uuids]:
+                self._discovered_devices[info.address] = info.name or info.address
 
         return await self.async_step_manual(user_input)
 
