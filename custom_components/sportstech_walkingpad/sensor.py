@@ -71,8 +71,8 @@ SENSOR_DESCRIPTIONS: tuple[WalkingPadSensorDescription, ...] = (
         translation_key="heart_rate",
         name="Heart Rate",
         native_unit_of_measurement="bpm",
-        device_class=SensorDeviceClass.HEART_RATE,
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:heart-pulse",
         value_fn=lambda d: d.heart if d.heart > 0 else None,
     ),
     WalkingPadSensorDescription(

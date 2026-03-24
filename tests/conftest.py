@@ -134,7 +134,6 @@ class _SensorDeviceClass:
     SPEED = "speed"
     DISTANCE = "distance"
     DURATION = "duration"
-    HEART_RATE = "heart_rate"
 
 
 class _SensorStateClass:
