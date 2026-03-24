@@ -85,9 +85,5 @@ class WalkingPadButton(CoordinatorEntity[WalkingPadCoordinator], ButtonEntity):
         self._attr_unique_id = f"{coordinator.mac}_{description.key}"
         self._attr_device_info = _device_info(coordinator)
 
-    @property
-    def available(self) -> bool:
-        return self.coordinator.data.available
-
     async def async_press(self) -> None:
         await self.entity_description.action(self.coordinator)

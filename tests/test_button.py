@@ -39,17 +39,6 @@ class TestWalkingPadButton:
         btn = self._make_button(c, "start")
         assert btn._attr_unique_id == "AA:BB:CC:DD:EE:FF_start"
 
-    def test_unavailable_when_data_unavailable(self, make_coordinator) -> None:
-        c = make_coordinator()
-        c.data.available = False
-        btn = self._make_button(c, "stop")
-        assert btn.available is False
-
-    def test_available_when_data_available(self, make_coordinator) -> None:
-        c = make_coordinator()
-        c.data.available = True
-        btn = self._make_button(c, "start")
-        assert btn.available is True
 
     async def test_press_start_calls_async_start(self, make_coordinator) -> None:
         c = make_coordinator()
