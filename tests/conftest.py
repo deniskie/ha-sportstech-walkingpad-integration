@@ -192,8 +192,46 @@ _mod(
 )
 
 
+@dataclass(frozen=True)
+class _ButtonEntityDescription:
+    key: str = ""
+    name: str | None = None
+    translation_key: str | None = None
+    icon: str | None = None
+
+
+class _ButtonEntity:
+    pass
+
+
+_mod(
+    "homeassistant.components.button",
+    ButtonEntity=_ButtonEntity,
+    ButtonEntityDescription=_ButtonEntityDescription,
+)
+
+
+class _NumberMode:
+    SLIDER = "slider"
+    BOX = "box"
+    AUTO = "auto"
+
+
+class _NumberEntity:
+    pass
+
+
+_mod(
+    "homeassistant.components.number",
+    NumberEntity=_NumberEntity,
+    NumberMode=_NumberMode,
+)
+
+
 class _Platform:
     SENSOR = "sensor"
+    BUTTON = "button"
+    NUMBER = "number"
 
 
 class _UnitOfSpeed:

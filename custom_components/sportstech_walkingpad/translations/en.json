@@ -21,6 +21,15 @@
     }
   },
   "entity": {
+    "button": {
+      "start": {"name": "Start"},
+      "stop": {"name": "Stop"},
+      "pause": {"name": "Pause"}
+    },
+    "number": {
+      "speed_control": {"name": "Speed"},
+      "incline_control": {"name": "Incline"}
+    },
     "sensor": {
       "state": {"name": "State"},
       "speed": {"name": "Speed"},
