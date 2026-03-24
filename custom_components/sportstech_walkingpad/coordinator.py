@@ -174,7 +174,7 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
             return
 
         ble_device = bluetooth.async_ble_device_from_address(
-            self.hass, self.mac, connectable=True
+            self.hass, self.mac, connectable=False
         )
         if ble_device is None:
             raise UpdateFailed(f"WalkingPad {self.mac} not found via BLE scanner")
