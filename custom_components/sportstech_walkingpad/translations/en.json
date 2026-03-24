@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "confirm": {
+        "title": "Sportstech WalkingPad found",
+        "description": "Do you want to set up {name} ({mac})?"
+      },
+      "manual": {
+        "title": "Set up Sportstech WalkingPad",
+        "data": {
+          "mac_address": "MAC Address",
+          "device_name": "Device Name"
+        }
+      }
+    },
+    "error": {
+      "invalid_mac": "Invalid MAC address (format: AA:BB:CC:DD:EE:FF)"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}

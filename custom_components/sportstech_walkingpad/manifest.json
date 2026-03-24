@@ -1,0 +1,13 @@
+{
+  "domain": "sportstech_walkingpad",
+  "name": "Sportstech WalkingPad (unofficial)",
+  "bluetooth": [],
+  "codeowners": ["@dkiesel"],
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "documentation": "https://github.com/dkiesel/sportstech-walkingpad-integration",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/dkiesel/sportstech-walkingpad-integration/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
