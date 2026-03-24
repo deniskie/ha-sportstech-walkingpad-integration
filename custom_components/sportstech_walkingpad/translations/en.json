@@ -29,7 +29,11 @@
       "workout_time": {"name": "Workout Time"},
       "distance": {"name": "Distance"},
       "calories": {"name": "Calories"},
-      "steps": {"name": "Steps"}
+      "steps": {"name": "Steps"},
+      "total_workout_time": {"name": "Total Workout Time"},
+      "total_distance": {"name": "Total Distance"},
+      "total_calories": {"name": "Total Calories"},
+      "total_steps": {"name": "Total Steps"}
     }
   }
 }

@@ -64,7 +64,11 @@ class _HomeAssistant:
     pass
 
 
-_mod("homeassistant.core", HomeAssistant=_HomeAssistant)
+def _callback(func: object) -> object:
+    return func
+
+
+_mod("homeassistant.core", HomeAssistant=_HomeAssistant, callback=_callback)
 
 _bluetooth_mod = _mod(
     "homeassistant.components.bluetooth",
@@ -151,12 +155,34 @@ class _SensorEntity:
     pass
 
 
+class _SensorExtraStoredData:
+    def __init__(self, native_value: object = None) -> None:
+        self.native_value = native_value
+
+
+class _RestoreSensor:
+    _restore_native_value: object = None
+
+    async def async_get_last_sensor_data(self) -> _SensorExtraStoredData | None:
+        if self._restore_native_value is not None:
+            return _SensorExtraStoredData(self._restore_native_value)
+        return None
+
+    async def async_added_to_hass(self) -> None:
+        pass
+
+    def async_write_ha_state(self) -> None:
+        pass
+
+
 _mod(
     "homeassistant.components.sensor",
     SensorEntity=_SensorEntity,
     SensorDeviceClass=_SensorDeviceClass,
     SensorStateClass=_SensorStateClass,
     SensorEntityDescription=_SensorEntityDescription,
+    RestoreSensor=_RestoreSensor,
+    SensorExtraStoredData=_SensorExtraStoredData,
 )
 
 

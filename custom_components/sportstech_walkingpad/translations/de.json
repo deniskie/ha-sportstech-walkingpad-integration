@@ -29,7 +29,11 @@
       "workout_time": {"name": "Trainingszeit"},
       "distance": {"name": "Distanz"},
       "calories": {"name": "Kalorien"},
-      "steps": {"name": "Schritte"}
+      "steps": {"name": "Schritte"},
+      "total_workout_time": {"name": "Gesamte Trainingszeit"},
+      "total_distance": {"name": "Gesamtdistanz"},
+      "total_calories": {"name": "Gesamtkalorien"},
+      "total_steps": {"name": "Gesamtschritte"}
     }
   }
 }

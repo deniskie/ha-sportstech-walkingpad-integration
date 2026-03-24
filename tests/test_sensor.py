@@ -5,9 +5,15 @@ from __future__ import annotations
 import pytest
 
 from custom_components.sportstech_walkingpad.coordinator import WalkingPadData
-from custom_components.sportstech_walkingpad.sensor import SENSOR_DESCRIPTIONS, WalkingPadSensor
+from custom_components.sportstech_walkingpad.sensor import (
+    SENSOR_DESCRIPTIONS,
+    TOTAL_SENSOR_DESCRIPTIONS,
+    WalkingPadSensor,
+    WalkingPadTotalSensor,
+)
 
 EXPECTED_KEYS = {"state", "speed", "incline", "heart_rate", "workout_time", "distance", "calories", "steps"}
+EXPECTED_TOTAL_KEYS = {"total_workout_time", "total_distance", "total_calories", "total_steps"}
 
 
 class TestSensorDescriptions:
@@ -94,3 +100,115 @@ class TestSensorEntity:
         desc = next(d for d in SENSOR_DESCRIPTIONS if d.key == "speed")
         sensor = WalkingPadSensor(coordinator, desc)
         assert sensor.native_value == pytest.approx(2.5)
+
+
+class TestTotalSensorDescriptions:
+    def test_all_expected_total_keys_present(self) -> None:
+        keys = {d.key for d in TOTAL_SENSOR_DESCRIPTIONS}
+        assert keys == EXPECTED_TOTAL_KEYS
+
+    def test_no_duplicate_keys(self) -> None:
+        keys = [d.key for d in TOTAL_SENSOR_DESCRIPTIONS]
+        assert len(keys) == len(set(keys))
+
+    def test_all_have_value_fn(self) -> None:
+        for desc in TOTAL_SENSOR_DESCRIPTIONS:
+            assert callable(desc.value_fn), f"{desc.key} missing value_fn"
+
+
+class TestWalkingPadTotalSensor:
+    def _make_total(self, make_coordinator, key: str) -> WalkingPadTotalSensor:
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == key)
+        return WalkingPadTotalSensor(coordinator, desc)
+
+    def test_initial_value_is_zero(self, make_coordinator: object) -> None:
+        sensor = self._make_total(make_coordinator, "total_steps")
+        assert sensor._attr_native_value == 0.0
+
+    def test_accumulates_on_session_end(self, make_coordinator: object) -> None:
+        """Session end detected when value drops from >0 to 0."""
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_steps")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+
+        # Session 1: 500 steps, then stop
+        coordinator.data.steps = 500
+        sensor._handle_coordinator_update()
+        coordinator.data.steps = 0
+        sensor._handle_coordinator_update()
+        assert sensor._attr_native_value == pytest.approx(500)
+
+        # Session 2: 300 steps, then stop
+        coordinator.data.steps = 300
+        sensor._handle_coordinator_update()
+        coordinator.data.steps = 0
+        sensor._handle_coordinator_update()
+        assert sensor._attr_native_value == pytest.approx(800)
+
+    def test_no_accumulation_while_running(self, make_coordinator: object) -> None:
+        """Rising values during a session must not trigger accumulation."""
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_distance")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+
+        for dist in [100, 200, 350, 500]:
+            coordinator.data.distance = dist
+            sensor._handle_coordinator_update()
+
+        assert sensor._attr_native_value == pytest.approx(0)
+
+    def test_calories_fractional_accumulation(self, make_coordinator: object) -> None:
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_calories")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+
+        coordinator.data.calories = 12.3
+        sensor._handle_coordinator_update()
+        coordinator.data.calories = 0.0
+        sensor._handle_coordinator_update()
+        assert sensor._attr_native_value == pytest.approx(12.3)
+
+    def test_multiple_sessions_accumulate(self, make_coordinator: object) -> None:
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_workout_time")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+
+        sessions = [300, 450, 180]
+        for duration in sessions:
+            coordinator.data.time = duration
+            sensor._handle_coordinator_update()
+            coordinator.data.time = 0
+            sensor._handle_coordinator_update()
+
+        assert sensor._attr_native_value == pytest.approx(sum(sessions))
+
+    async def test_restore_previous_total(self, make_coordinator: object) -> None:
+        """Total is restored from persisted state after HA restart."""
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_steps")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+        sensor._restore_native_value = 9500.0
+
+        await sensor.async_added_to_hass()
+        assert sensor._attr_native_value == pytest.approx(9500.0)
+
+    async def test_new_session_added_to_restored_total(self, make_coordinator: object) -> None:
+        """Session after HA restart adds on top of restored total."""
+        coordinator = make_coordinator()
+        desc = next(d for d in TOTAL_SENSOR_DESCRIPTIONS if d.key == "total_steps")
+        sensor = WalkingPadTotalSensor(coordinator, desc)
+        sensor._restore_native_value = 5000.0
+
+        await sensor.async_added_to_hass()
+
+        coordinator.data.steps = 200
+        sensor._handle_coordinator_update()
+        coordinator.data.steps = 0
+        sensor._handle_coordinator_update()
+
+        assert sensor._attr_native_value == pytest.approx(5200.0)
+
+    def test_unique_id_format(self, make_coordinator: object) -> None:
+        sensor = self._make_total(make_coordinator, "total_steps")
+        assert sensor._attr_unique_id == "AA:BB:CC:DD:EE:FF_total_steps"
