@@ -9,4 +9,6 @@ dist/
 venv/
 apk/
 *.apk
+*.xapk
+.idea/
 *.log
