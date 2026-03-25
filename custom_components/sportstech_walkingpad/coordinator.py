@@ -88,6 +88,9 @@ class WalkingPadData:
     min_incline: int = 0     # %
     params_received: bool = False
 
+    # Peripheral state (optimistic – no feedback from device)
+    light_on: bool = False
+
 
 # ---------------------------------------------------------------------------
 # Frame helpers
@@ -355,6 +358,13 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         speed_byte = max(0, min(255, round(self.data.speed * 10)))
         incline_byte = max(0, min(self.data.max_incline, incline)) & 0xFF
         await self._send(bytes([0x53, 0x02, speed_byte, incline_byte]))
+
+    async def async_set_light(self, on: bool) -> None:
+        """Turn the LED light on or off. State is tracked optimistically."""
+        await self._ensure_connected()
+        value = 0x01 if on else 0x00
+        await self._send(bytes([0x5C, 0x01, value, 0x00, 0x00, 0x00]))
+        self.data.light_on = on
 
     async def _send(self, payload: bytes) -> None:
         if not self._client or not self._client.is_connected:

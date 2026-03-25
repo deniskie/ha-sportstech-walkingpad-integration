@@ -21,6 +21,9 @@
     }
   },
   "entity": {
+    "switch": {
+      "light": {"name": "Light"}
+    },
     "button": {
       "start": {"name": "Start"},
       "stop": {"name": "Stop"},

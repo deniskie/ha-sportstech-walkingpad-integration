@@ -228,10 +228,18 @@ _mod(
 )
 
 
+class _SwitchEntity:
+    pass
+
+
+_mod("homeassistant.components.switch", SwitchEntity=_SwitchEntity)
+
+
 class _Platform:
     SENSOR = "sensor"
     BUTTON = "button"
     NUMBER = "number"
+    SWITCH = "switch"
 
 
 class _UnitOfSpeed:

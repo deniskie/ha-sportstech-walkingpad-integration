@@ -14,7 +14,7 @@ from .coordinator import WalkingPadCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.NUMBER]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.NUMBER, Platform.SWITCH]
 
 _ATTR_SPEED = "speed"
 _ATTR_INCLINE = "incline"
