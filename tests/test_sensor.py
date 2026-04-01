@@ -58,7 +58,7 @@ class TestSensorValueFunctions:
         assert self._fn("heart_rate")(self._data(heart=72)) == 72
 
     def test_workout_time_fn(self) -> None:
-        assert self._fn("workout_time")(self._data(time=300)) == 300
+        assert self._fn("workout_time")(self._data(time=300)) == pytest.approx(5.0)
 
     def test_distance_fn(self) -> None:
         assert self._fn("distance")(self._data(distance=500)) == 500
@@ -181,7 +181,7 @@ class TestWalkingPadTotalSensor:
             coordinator.data.time = 0
             sensor._handle_coordinator_update()
 
-        assert sensor._attr_native_value == pytest.approx(sum(sessions))
+        assert sensor._attr_native_value == pytest.approx(sum(s / 60 for s in sessions))
 
     async def test_restore_previous_total(self, make_coordinator: object) -> None:
         """Total is restored from persisted state after HA restart."""
