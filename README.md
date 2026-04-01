@@ -56,12 +56,31 @@ After restart, go to **Settings → Integrations → Add Integration** and searc
 | `sensor.walkingpad_speed` | km/h | Current belt speed |
 | `sensor.walkingpad_incline` | % | Current incline level |
 | `sensor.walkingpad_heart_rate` | bpm | Heart rate (requires accessory; `unavailable` if no sensor) |
-| `sensor.walkingpad_workout_time` | s | Elapsed time of current session |
+| `sensor.walkingpad_workout_time` | min | Elapsed time of current session |
 | `sensor.walkingpad_distance` | m | Distance covered in current session |
 | `sensor.walkingpad_calories` | kcal | Calories burned in current session |
 | `sensor.walkingpad_steps` | — | Step count of current session |
 
 Session metrics (time, distance, calories, steps) reset when the belt is stopped.
+
+> **Note:** The device timer resets after ~99:59 min. The integration detects this and continues accumulating the correct elapsed time.
+
+### Total sensors
+
+| Entity | Unit | Description |
+|--------|------|-------------|
+| `sensor.walkingpad_total_workout_time` | min | Lifetime accumulated workout time |
+| `sensor.walkingpad_total_distance` | m | Lifetime accumulated distance |
+| `sensor.walkingpad_total_calories` | kcal | Lifetime accumulated calories |
+| `sensor.walkingpad_total_steps` | — | Lifetime accumulated step count |
+
+Total sensors persist across HA restarts and accumulate each completed session.
+
+### Switch
+
+| Entity | Description |
+|--------|-------------|
+| `switch.walkingpad_led_light` | Turn the WalkingPad LED light on or off |
 
 ---
 
