@@ -156,6 +156,29 @@ class TestParseStateResponse:
         assert c.data.steps == 0
         assert c.data.heart == 0
 
+    def test_time_wrap_accumulates(self, make_coordinator: object) -> None:
+        """Time wraps at 99 min 99 s (6039 s) and continues accumulating."""
+        c: WalkingPadCoordinator = make_coordinator()
+        # Simulate end of first cycle: 6039 s (0xFF97 = 65431? no: 6039 = 0x1797)
+        # 6039 = 0x17 * 256 + 0x97 → time_hi=0x17, time_lo=0x97
+        c._on_notification(0, _state_frame(3, time_lo=0x97, time_hi=0x17))
+        assert c.data.time == 6039
+        # Device wraps: sends 10 s into the new cycle
+        c._on_notification(0, _state_frame(3, time_lo=10, time_hi=0))
+        assert c.data.time == 6039 + 10
+
+    def test_time_resets_on_idle(self, make_coordinator: object) -> None:
+        """Wrap offset is cleared when device goes IDLE."""
+        c: WalkingPadCoordinator = make_coordinator()
+        c._on_notification(0, _state_frame(3, time_lo=0x97, time_hi=0x17))
+        c._on_notification(0, _state_frame(3, time_lo=10, time_hi=0))
+        assert c.data.time == 6039 + 10
+        c._on_notification(0, _state_frame(0))  # IDLE
+        assert c.data.time == 0
+        # New session starts clean
+        c._on_notification(0, _state_frame(3, time_lo=5, time_hi=0))
+        assert c.data.time == 5
+
     def test_two_byte_little_endian_max(self, make_coordinator: object) -> None:
         """16-bit LE values max out at 65535."""
         c: WalkingPadCoordinator = make_coordinator()

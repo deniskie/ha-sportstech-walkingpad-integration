@@ -153,6 +153,10 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
         self._param_ready = asyncio.Event()
         self.data: WalkingPadData = WalkingPadData()
 
+        # Wrap detection: device timer resets at 99 min 99 s (6039 s)
+        self._raw_time: int = 0
+        self._time_offset: int = 0
+
     # ------------------------------------------------------------------
     # DataUpdateCoordinator interface
     # ------------------------------------------------------------------
@@ -284,13 +288,20 @@ class WalkingPadCoordinator(DataUpdateCoordinator[WalkingPadData]):
 
             if ha_state == STATE_RUNNING:
                 # Only RUNNING carries full session-cumulative data
-                self.data.time     = (data[5] & 0xFF) | ((data[6] & 0xFF) << 8)
+                raw_time = (data[5] & 0xFF) | ((data[6] & 0xFF) << 8)
+                if raw_time < self._raw_time:
+                    # Device counter wrapped (resets at 99 min 99 s = 6039 s)
+                    self._time_offset += self._raw_time
+                self._raw_time = raw_time
+                self.data.time     = self._time_offset + raw_time
                 self.data.distance = (data[7] & 0xFF) | ((data[8] & 0xFF) << 8)
                 self.data.calories = round(((data[9] & 0xFF) | ((data[10] & 0xFF) << 8)) * 0.1, 1)
                 self.data.steps    = (data[11] & 0xFF) | ((data[12] & 0xFF) << 8)
         elif ha_state == STATE_IDLE:
             self.data.speed = 0.0
             self.data.time = 0
+            self._raw_time = 0
+            self._time_offset = 0
             self.data.distance = 0
             self.data.calories = 0.0
             self.data.steps = 0
