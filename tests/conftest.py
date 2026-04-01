@@ -252,6 +252,7 @@ class _UnitOfLength:
 
 class _UnitOfTime:
     SECONDS = "s"
+    MINUTES = "min"
 
 
 class _EntityCategory:
